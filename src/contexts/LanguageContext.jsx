@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { detectIntent } from '../lib/dialogflow';
+import { translateText } from '../lib/translate';
 
 const LanguageContext = createContext();
 
@@ -143,6 +143,7 @@ const translations = {
 export const LanguageProvider = ({ children }) => {
   const [currentLanguage, setCurrentLanguage] = useState('id');
   const [availableLanguages, setAvailableLanguages] = useState([]);
+  const [translatedContent, setTranslatedContent] = useState({});
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language') || 'id';
@@ -165,21 +166,25 @@ export const LanguageProvider = ({ children }) => {
     setCurrentLanguage(languageCode);
     localStorage.setItem('language', languageCode);
 
-    try {
-      const sessionId = 'some-session-id'; // Anda mungkin ingin menggunakan ID sesi yang unik
-      const query = `ganti bahasa ke ${languageCode}`;
-      const response = await detectIntent(sessionId, query, languageCode);
-      // Lakukan sesuatu dengan respons dari Dialogflow, jika perlu
-      console.log(response);
-    } catch (error) {
-      console.error('Error changing language with Dialogflow:', error);
+    if (languageCode === 'id') {
+      setTranslatedContent({});
+      return;
     }
+
+    const newTranslations = {};
+    for (const key in translations.id) {
+      const text = translations.id[key];
+      const translatedText = await translateText(text, languageCode);
+      newTranslations[key] = translatedText;
+    }
+    setTranslatedContent(newTranslations);
   };
 
   const t = (key) => {
-    // For dynamic content, real-time translation would need an API.
-    // This is a simulation for static keys.
-    return translations[currentLanguage]?.[key] || translations.id[key] || key;
+    if (currentLanguage === 'id') {
+      return translations.id[key] || key;
+    }
+    return translatedContent[key] || translations.en[key] || key;
   };
 
   return (

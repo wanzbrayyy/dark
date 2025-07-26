@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BackButton from '@/components/BackButton';
 import LanguageSelector from '@/components/LanguageSelector';
+import io from 'socket.io-client';
 
 const LeaderboardPage = () => {
   const { t } = useLanguage();
@@ -11,21 +12,21 @@ const LeaderboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const res = await fetch('/api/leaderboard');
-        const data = await res.json();
-        if (data.success) {
-          setLeaderboardData(data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch leaderboard:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetch('/api/socket');
+    const socket = io();
 
-    fetchLeaderboard();
+    socket.on('connect', () => {
+      console.log('connected to socket');
+      setLoading(false);
+    });
+
+    socket.on('leaderboardUpdate', (data) => {
+      setLeaderboardData(data);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const getRankInfo = (points) => {
