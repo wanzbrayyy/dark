@@ -3,12 +3,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 const LanguageSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { currentLanguage, availableLanguages, changeLanguage } = useLanguage();
+  const { availableLanguages, changeLanguage } = useLanguage();
+  const { i18n, t } = useTranslation();
 
-  const currentLang = availableLanguages.find(lang => lang.code === currentLanguage);
+  const currentLang = availableLanguages.find(lang => lang.code === i18n.language);
 
   return (
     <>
@@ -41,7 +43,7 @@ const LanguageSelector = () => {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">
                   <i className="fas fa-globe mr-2"></i>
-                  Pilih Bahasa / Select Language
+                  {t('selectLanguage')}
                 </h3>
                 <Button
                   variant="ghost"
@@ -64,7 +66,7 @@ const LanguageSelector = () => {
                       setIsOpen(false);
                     }}
                     className={`flex items-center p-3 rounded-lg transition-all ${
-                      currentLanguage === language.code
+                      i18n.language === language.code
                         ? 'bg-blue-600/30 border border-blue-500'
                         : 'hover:bg-white/10'
                     }`}
@@ -74,7 +76,7 @@ const LanguageSelector = () => {
                       <div className="text-white font-medium">{language.name}</div>
                       <div className="text-gray-400 text-sm">{language.code.toUpperCase()}</div>
                     </div>
-                    {currentLanguage === language.code && (
+                    {i18n.language === language.code && (
                       <i className="fas fa-check ml-auto text-blue-400"></i>
                     )}
                   </motion.button>

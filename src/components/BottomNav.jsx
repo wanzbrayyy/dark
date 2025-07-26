@@ -3,19 +3,21 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
-
-const navItems = [
-  { path: '/forum', icon: 'fas fa-home', label: 'Forum' },
-  { path: '/leaderboard', icon: 'fas fa-trophy', label: 'Leaderboard' },
-  { path: '/post/new', icon: 'fas fa-plus-circle', label: 'New Post' },
-  { path: '/notifications', icon: 'fas fa-bell', label: 'Notifikasi' },
-  { path: '/profile', icon: 'fas fa-user', label: 'Profile' },
-];
+import { useTranslation } from 'react-i18next';
 
 const BottomNav = () => {
   const { user } = useAuth();
   const { notifications } = useNotifications();
   const location = useLocation();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { path: '/forum', icon: 'fas fa-home', label: t('forum') },
+    { path: '/leaderboard', icon: 'fas fa-trophy', label: t('leaderboard') },
+    { path: '/post/new', icon: 'fas fa-plus-circle', label: t('newPost') },
+    { path: '/notifications', icon: 'fas fa-bell', label: t('notifications') },
+    { path: '/profile', icon: 'fas fa-user', label: t('profile') },
+  ];
 
   if (!user) return null;
 
@@ -27,7 +29,7 @@ const BottomNav = () => {
     return null;
   }
 
-  const finalNavItems = navItems.map(item => 
+  const finalNavItems = navItems.map(item =>
     item.path === '/profile' ? { ...item, path: `/profile/${user.username}` } : item
   );
 
@@ -52,7 +54,7 @@ const BottomNav = () => {
             <i className={`${item.icon} text-xl`}></i>
             <span className="text-xs mt-1">{item.label}</span>
             {item.path === '/notifications' && unreadCount > 0 && (
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="absolute top-1 right-1/4 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
