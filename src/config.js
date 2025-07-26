@@ -1,13 +1,13 @@
 export const config = {
   mongodb: {
-    url: "MONGODB_URL_ANDA_DI_SINI",
+    url: "mongodb+srv://zanssxploit:pISqUYgJJDfnLW9b@cluster0.fgram.mongodb.net/chttb?retryWrites=true&w=majority",
   },
   nowPayments: {
     apiKey: "NOWPAYMENTS_API_KEY_ANDA_DI_SINI",
   },
   site: {
-    name: "RedDark.id",
-    description: "Forum Underground Indonesia dengan Sistem Bitcoin",
-    url: "https://reddark.id",
+    name: "redDark.id",
+    description: "forum Underground id",
+    url: "wanzofc.site",
   },
 };

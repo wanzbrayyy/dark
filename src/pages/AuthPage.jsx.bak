@@ -173,7 +173,7 @@ const AuthPage = () => {
           <div className="mt-6 p-4 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
             <p className="text-yellow-400 text-sm text-center">
               <i className="fas fa-crown mr-2"></i>
-              Admin: welcome to redDark wfc ind
+              Admin: wanzofc / wanz01
             </p>
           </div>
         </motion.div>
