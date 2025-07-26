@@ -10,4 +10,7 @@ export const config = {
     description: "forum Underground id",
     url: "wanzofc.site",
   },
+  socket: {
+    uri: "http://localhost:4000",
+  },
 };

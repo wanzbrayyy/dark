@@ -1,14 +1,24 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+
+const languages = [
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'id', name: 'Indonesia', flag: '🇮🇩' },
+];
 
 const LanguageSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { currentLanguage, availableLanguages, changeLanguage } = useLanguage();
+  const { i18n } = useTranslation();
 
-  const currentLang = availableLanguages.find(lang => lang.code === currentLanguage);
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    setIsOpen(false);
+  };
+
+  const currentLang = languages.find(lang => lang.code === i18n.language);
 
   return (
     <>
@@ -54,17 +64,14 @@ const LanguageSelector = () => {
               </div>
 
               <div className="grid gap-2">
-                {availableLanguages.map((language) => (
+                {languages.map((language) => (
                   <motion.button
                     key={language.code}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      changeLanguage(language.code);
-                      setIsOpen(false);
-                    }}
+                    onClick={() => changeLanguage(language.code)}
                     className={`flex items-center p-3 rounded-lg transition-all ${
-                      currentLanguage === language.code
+                      i18n.language === language.code
                         ? 'bg-blue-600/30 border border-blue-500'
                         : 'hover:bg-white/10'
                     }`}
@@ -74,7 +81,7 @@ const LanguageSelector = () => {
                       <div className="text-white font-medium">{language.name}</div>
                       <div className="text-gray-400 text-sm">{language.code.toUpperCase()}</div>
                     </div>
-                    {currentLanguage === language.code && (
+                    {i18n.language === language.code && (
                       <i className="fas fa-check ml-auto text-blue-400"></i>
                     )}
                   </motion.button>

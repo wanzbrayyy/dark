@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/components/ui/use-toast';
 import BackButton from '@/components/BackButton';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -153,7 +153,7 @@ const DepositPage = () => {
 
               {/* Generate Address Button */}
               <Button
-                onClick={generateBtcAddress}
+                onClick={handleCreateInvoice}
                 className="w-full bg-orange-600 hover:bg-orange-700"
               >
                 <i className="fas fa-qrcode mr-2"></i>
@@ -174,15 +174,12 @@ const DepositPage = () => {
               {t('btcAddress')}
             </h2>
 
-            {btcAddress ? (
+            {invoice ? (
               <div className="space-y-6">
                 {/* QR Code */}
                 <div className="text-center">
                   <div className="inline-block p-4 bg-white rounded-lg">
-                    <img 
-                      alt="Bitcoin QR Code"
-                      className="w-48 h-48"
-                     src={qrCode} />
+                    <QRCode value={invoice.pay_address} size={192} />
                   </div>
                 </div>
 
@@ -194,7 +191,7 @@ const DepositPage = () => {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={btcAddress}
+                      value={invoice.pay_address}
                       readOnly
                       className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none"
                     />
@@ -221,21 +218,12 @@ const DepositPage = () => {
                     <li>4. Saldo akan otomatis bertambah setelah konfirmasi</li>
                   </ol>
                 </div>
-
-                {/* Confirm Button */}
-                <Button
-                  onClick={handleDeposit}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                >
-                  <i className="fas fa-check mr-2"></i>
-                  Konfirmasi Deposit
-                </Button>
               </div>
             ) : (
               <div className="text-center py-12">
                 <i className="fab fa-bitcoin text-6xl text-gray-600 mb-4"></i>
                 <p className="text-gray-400">
-                  Klik "Generate QR Code" untuk membuat alamat deposit
+                  Masukkan jumlah dan klik "Generate QR Code" untuk membuat faktur deposit.
                 </p>
               </div>
             )}
@@ -280,45 +268,6 @@ const DepositPage = () => {
           </ul>
         </motion.div>
       </div>
-
-      {/* Confirmation Modal */}
-      {isConfirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center blur-overlay">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="glass-effect rounded-lg p-6 max-w-md w-full mx-4"
-          >
-            <h3 className="text-xl font-bold text-white mb-4">
-              <i className="fas fa-exclamation-triangle mr-2 text-yellow-400"></i>
-              Konfirmasi Deposit
-            </h3>
-            
-            <div className="space-y-4 mb-6">
-              <p className="text-gray-300">
-                Anda akan mengkonfirmasi deposit sebesar <span className="font-bold text-orange-400">₿{amount}</span>. Saldo Anda akan diperbarui setelah konfirmasi.
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={cancelDeposit}
-                variant="outline"
-                className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-600/20"
-              >
-                Batal
-              </Button>
-              <Button
-                onClick={confirmDeposit}
-                className="flex-1 bg-green-600 hover:bg-green-700"
-              >
-                <i className="fas fa-check mr-2"></i>
-                Konfirmasi
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 };

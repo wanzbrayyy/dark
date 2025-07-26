@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import LanguageSelector from './LanguageSelector';
 
 const navItems = [
   { path: '/forum', icon: 'fas fa-home', label: 'Forum' },
@@ -62,6 +63,9 @@ const BottomNav = () => {
             )}
           </NavLink>
         ))}
+      </div>
+      <div className="hidden md:block">
+        <LanguageSelector />
       </div>
     </motion.div>
   );

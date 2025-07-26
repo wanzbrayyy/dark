@@ -1,31 +1,58 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/components/ui/use-toast';
 import BackButton from '@/components/BackButton';
 import LanguageSelector from '@/components/LanguageSelector';
+import { useSocket } from '@/contexts/SocketContext';
 
 const UserProfile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
   const { user, getRankInfo, updateUser } = useAuth();
-  const { t } = useLanguage();
-  const [avatar, setAvatar] = useState(user?.avatar || null);
+  const { t } = useTranslation();
+  const [profileUser, setProfileUser] = useState(null);
+  const [avatar, setAvatar] = useState(null);
   const fileInputRef = useRef(null);
+  const socket = useSocket();
 
-  if (!user) {
-    navigate('/auth');
-    return null;
+  useEffect(() => {
+    // In a real app, you'd fetch the user data based on `username`
+    // For now, we'll just use the logged in user's data if it's their profile
+    if (user && user.username === username) {
+      setProfileUser(user);
+      setAvatar(user.avatar);
+    } else {
+      // Here you would fetch the user data from your API
+      // For example:
+      // fetch(`/api/users/${username}`)
+      //   .then(res => res.json())
+      //   .then(data => {
+      //     setProfileUser(data);
+      //     setAvatar(data.avatar);
+      //   });
+    }
+  }, [username, user]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('users', (change) => {
+        if (change.fullDocument._id === profileUser._id) {
+          setProfileUser(change.fullDocument);
+        }
+      });
+    }
+  }, [socket, profileUser]);
+
+  if (!profileUser) {
+    return <div>Loading...</div>; // Or a proper loading spinner
   }
 
-  // For demo, we'll show current user's profile if viewing own, or fetch other user's data
-  // This is a simplified version for now.
-  const isOwnProfile = user.username === username;
-  const profileUser = user; // In a real app, you'd fetch the user data based on `username`
+  const isOwnProfile = user && user.username === username;
   const rankInfo = getRankInfo(profileUser.points);
 
   const handleAvatarUpload = (e) => {

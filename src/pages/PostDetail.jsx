@@ -5,19 +5,22 @@ import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForum } from '@/contexts/ForumContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/components/ui/use-toast';
 import BackButton from '@/components/BackButton';
 import LanguageSelector from '@/components/LanguageSelector';
+import UserPreview from '@/components/UserPreview';
 
 const PostDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { posts, votePost, addComment, incrementDownloadCount } = useForum();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [commentText, setCommentText] = useState('');
   const [replyTo, setReplyTo] = useState(null);
+  const [showUserPreview, setShowUserPreview] = useState(false);
+  const [previewUser, setPreviewUser] = useState(null);
 
   const post = posts.find(p => p.id === id);
 
@@ -35,15 +38,31 @@ const PostDetail = () => {
     votePost(post.id, voteType);
   };
 
-  const handleComment = (e) => {
+  const handleComment = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
 
-    addComment(post.id, {
+    const newComment = {
       content: commentText,
       author: user.username,
       replyTo: replyTo,
-    });
+    };
+
+    addComment(post.id, newComment);
+
+    const mentionedUsers = commentText.match(/@(\w+)/g);
+    if (mentionedUsers) {
+      mentionedUsers.forEach(async (mention) => {
+        const username = mention.substring(1);
+        // In a real app, you'd get the user ID from the username
+        const userId = 'some-user-id'; // Replace with actual user ID
+        await axios.post('/api/notifications', {
+          user: userId,
+          message: `${user.username} mentioned you in a comment.`,
+        });
+      });
+    }
+
     setCommentText('');
     setReplyTo(null);
   };
@@ -82,12 +101,30 @@ const PostDetail = () => {
     setCommentText(prev => `${prev}${prev ? ' ' : ''}@${username} `);
   };
 
+  const handleUserPreview = (username) => {
+    // In a real app, you'd fetch the user data here
+    const userToPreview = {
+      username: username,
+      email: `${username}@example.com`,
+      avatar: null,
+    };
+    setPreviewUser(userToPreview);
+    setShowUserPreview(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       <Helmet>
         <title>{post.title} - RedDark.id</title>
         <meta name="description" content={post.content.substring(0, 160)} />
       </Helmet>
+
+      {showUserPreview && (
+        <UserPreview
+          user={previewUser}
+          onClose={() => setShowUserPreview(false)}
+        />
+      )}
 
       <BackButton />
 
@@ -130,7 +167,10 @@ const PostDetail = () => {
               </div>
               <h1 className="text-3xl font-bold text-white mb-4">{post.title}</h1>
               <div className="flex items-center gap-4 text-gray-400">
-                <span>
+                <span
+                  className="cursor-pointer hover:text-white"
+                  onClick={() => handleUserPreview(post.author)}
+                >
                   <i className="fas fa-user mr-2"></i>
                   {post.author}
                 </span>

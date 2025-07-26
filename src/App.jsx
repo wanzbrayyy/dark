@@ -15,10 +15,10 @@ import NewPostPage from '@/pages/NewPostPage';
 import LeaderboardPage from '@/pages/LeaderboardPage';
 import ActivityHistoryPage from '@/pages/ActivityHistoryPage';
 import NotificationsPage from '@/pages/NotificationsPage';
-import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ForumProvider } from '@/contexts/ForumContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { SocketProvider } from '@/contexts/SocketContext';
 import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -81,7 +81,7 @@ function MainAppRoutes() {
 
 function App() {
   return (
-    <LanguageProvider>
+    <SocketProvider>
       <AuthProvider>
         <NotificationProvider>
           <ForumProvider>
@@ -98,7 +98,7 @@ function App() {
           </ForumProvider>
         </NotificationProvider>
       </AuthProvider>
-    </LanguageProvider>
+    </SocketProvider>
   );
 }
 
