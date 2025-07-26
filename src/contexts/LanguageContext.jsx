@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { detectIntent } from '../lib/dialogflow';
 
 const LanguageContext = createContext();
 
@@ -160,9 +161,19 @@ export const LanguageProvider = ({ children }) => {
     ]);
   }, []);
 
-  const changeLanguage = (languageCode) => {
+  const changeLanguage = async (languageCode) => {
     setCurrentLanguage(languageCode);
     localStorage.setItem('language', languageCode);
+
+    try {
+      const sessionId = 'some-session-id'; // Anda mungkin ingin menggunakan ID sesi yang unik
+      const query = `ganti bahasa ke ${languageCode}`;
+      const response = await detectIntent(sessionId, query, languageCode);
+      // Lakukan sesuatu dengan respons dari Dialogflow, jika perlu
+      console.log(response);
+    } catch (error) {
+      console.error('Error changing language with Dialogflow:', error);
+    }
   };
 
   const t = (key) => {

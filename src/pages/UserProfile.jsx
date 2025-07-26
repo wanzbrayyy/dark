@@ -50,7 +50,7 @@ const UserProfile = () => {
   }
 
   if (!profileUser) {
-    return <div>Profil tidak ditemukan.</div>;
+    return <div>Pengguna tidak ditemukan.</div>;
   }
 
   const isOwnProfile = user.username === username;
