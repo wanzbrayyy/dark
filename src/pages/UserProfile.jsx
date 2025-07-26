@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -14,19 +14,47 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const { user, getRankInfo, updateUser } = useAuth();
   const { t } = useLanguage();
-  const [avatar, setAvatar] = useState(user?.avatar || null);
+  const [profileUser, setProfileUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [avatar, setAvatar] = useState(null);
   const fileInputRef = useRef(null);
 
-  if (!user) {
-    navigate('/auth');
-    return null;
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/profiles/${user._id}`);
+        const data = await res.json();
+        if (data.success) {
+          setProfileUser(data.data);
+          setAvatar(data.data.avatar);
+        } else {
+          // Handle profile not found
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user, navigate]);
+
+  if (loading) {
+    return <div>Memuat...</div>;
   }
 
-  // For demo, we'll show current user's profile if viewing own, or fetch other user's data
-  // This is a simplified version for now.
+  if (!profileUser) {
+    return <div>Profil tidak ditemukan.</div>;
+  }
+
   const isOwnProfile = user.username === username;
-  const profileUser = user; // In a real app, you'd fetch the user data based on `username`
-  const rankInfo = getRankInfo(profileUser.points);
+  const rankInfo = getRankInfo(profileUser.user.points);
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -53,8 +81,8 @@ const UserProfile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       <Helmet>
-        <title>Profil {profileUser.username} - RedDark.id</title>
-        <meta name="description" content={`Profil pengguna ${profileUser.username} di RedDark.id`} />
+        <title>Profil {profileUser.user.username} - RedDark.id</title>
+        <meta name="description" content={`Profil pengguna ${profileUser.user.username} di RedDark.id`} />
       </Helmet>
 
       <BackButton />
@@ -113,29 +141,29 @@ const UserProfile = () => {
             {/* User Info */}
             <div className="flex-1 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
-                <h1 className="text-2xl font-bold text-white">{profileUser.username}</h1>
+                  <h1 className="text-2xl font-bold text-white">{profileUser.user.username}</h1>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${rankInfo.color}`}>
                   <i className="fas fa-crown mr-1"></i>
                   {t(rankInfo.name)}
                 </span>
               </div>
-              <p className="text-gray-400 mb-4">{profileUser.email}</p>
+                <p className="text-gray-400 mb-4">{profileUser.user.email}</p>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">{profileUser.points}</div>
+                    <div className="text-xl font-bold text-white">{profileUser.user.points}</div>
                   <div className="text-gray-400 text-sm">Points</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-orange-400">₿{profileUser.btcBalance.toFixed(6)}</div>
+                    <div className="text-xl font-bold text-orange-400">₿{profileUser.user.btcBalance.toFixed(6)}</div>
                   <div className="text-gray-400 text-sm">{t('balance')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">{profileUser.totalPosts}</div>
+                    <div className="text-xl font-bold text-white">{profileUser.posts.length}</div>
                   <div className="text-gray-400 text-sm">{t('posts')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">{profileUser.totalTransactions}</div>
+                    <div className="text-xl font-bold text-white">{profileUser.user.totalTransactions}</div>
                   <div className="text-gray-400 text-sm">{t('transactions')}</div>
                 </div>
               </div>
@@ -160,7 +188,7 @@ const UserProfile = () => {
               <div className="flex justify-between">
                 <span className="text-gray-400">Bergabung:</span>
                 <span className="text-white">
-                  {new Date(profileUser.joinDate).toLocaleDateString('id-ID')}
+                  {new Date(profileUser.user.createdAt).toLocaleDateString('id-ID')}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -172,7 +200,7 @@ const UserProfile = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Role:</span>
-                <span className="text-white capitalize">{profileUser.role}</span>
+                <span className="text-white capitalize">{profileUser.user.role}</span>
               </div>
             </div>
           </motion.div>
@@ -200,12 +228,12 @@ const UserProfile = () => {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-400">Progress to next rank</span>
-                  <span className="text-white">{profileUser.points}/100</span>
+                  <span className="text-white">{profileUser.user.points}/100</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div 
                     className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
-                    style={{ width: `${Math.min((profileUser.points % 100), 100)}%` }}
+                    style={{ width: `${Math.min((profileUser.user.points % 100), 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -248,7 +276,7 @@ const UserProfile = () => {
               <div className="flex-1">
                 <div className="text-white font-medium">Akun dibuat</div>
                 <div className="text-gray-400 text-sm">
-                  {new Date(profileUser.joinDate).toLocaleDateString('id-ID')}
+                  {new Date(profileUser.user.createdAt).toLocaleDateString('id-ID')}
                 </div>
               </div>
               <div className="text-green-400 font-medium">+1 Point</div>
