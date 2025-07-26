@@ -182,24 +182,24 @@ const UserProfile = () => {
           >
             <h2 className="text-xl font-bold text-white mb-4">
               <i className="fas fa-info-circle mr-2"></i>
-              Informasi Akun
+                {t('accountInfo')}
             </h2>
             <div className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-gray-400">Bergabung:</span>
+                  <span className="text-gray-400">{t('joined')}:</span>
                 <span className="text-white">
                   {new Date(profileUser.user.createdAt).toLocaleDateString('id-ID')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Status:</span>
+                  <span className="text-gray-400">{t('status')}:</span>
                 <span className="text-green-400">
                   <i className="fas fa-circle mr-1"></i>
-                  Online
+                    {t('online')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Role:</span>
+                  <span className="text-gray-400">{t('role')}:</span>
                 <span className="text-white capitalize">{profileUser.user.role}</span>
               </div>
             </div>
@@ -214,11 +214,11 @@ const UserProfile = () => {
           >
             <h2 className="text-xl font-bold text-white mb-4">
               <i className="fas fa-trophy mr-2"></i>
-              Progress Ranking
+              {t('rankProgress')}
             </h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-400">Current Rank:</span>
+                <span className="text-gray-400">{t('currentRank')}:</span>
                 <span className={`font-bold ${rankInfo.color}`}>
                   {t(rankInfo.name)}
                 </span>
@@ -227,7 +227,7 @@ const UserProfile = () => {
               {/* Progress Bar */}
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Progress to next rank</span>
+                  <span className="text-gray-400">{t('progressToNextRank')}</span>
                   <span className="text-white">{profileUser.user.points}/100</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
@@ -239,7 +239,7 @@ const UserProfile = () => {
               </div>
 
               <div className="text-sm text-gray-400">
-                Dapatkan poin dengan posting, komentar, dan transaksi!
+                {t('getPoints')}
               </div>
             </div>
           </motion.div>
@@ -255,7 +255,7 @@ const UserProfile = () => {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-white">
               <i className="fas fa-history mr-2"></i>
-              Aktivitas Terbaru
+              {t('recentActivity')}
             </h2>
             <Button
               onClick={() => navigate('/history')}
@@ -264,7 +264,7 @@ const UserProfile = () => {
               className="border-blue-600 text-blue-400 hover:bg-blue-600/20"
             >
               <i className="fas fa-external-link-alt mr-2"></i>
-              Lihat Semua
+              {t('viewAll')}
             </Button>
           </div>
 

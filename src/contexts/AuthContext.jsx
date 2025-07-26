@@ -15,102 +15,74 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (username, password) => {
-    // Admin login
-    if (username === 'wanzofc' && password === 'wanz01') {
-      const adminUser = {
-        id: 'admin',
-        username: 'wanzofc',
-        email: 'admin@reddark.id',
-        role: 'admin',
-        rank: 'Owner',
-        points: 9000000999,
-        btcBalance: 0,
-        avatar: null,
-        joinDate: new Date().toISOString(),
-        totalPosts: 0,
-        totalTransactions: 0
-      };
-      setUser(adminUser);
-      localStorage.setItem('currentUser', JSON.stringify(adminUser));
-      toast({
-        title: "Login berhasil!",
-        description: "Selamat datang kembali, Admin!"
+  const login = async (username, password) => {
+    try {
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
       });
-      return true;
-    }
 
-    // Regular user login
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const foundUser = users.find(u => u.username === username && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      const { password: _, ...userWithoutPassword } = data.data;
       setUser(userWithoutPassword);
       localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+
       toast({
-        title: "Login berhasil!",
-        description: `Selamat datang kembali, ${foundUser.username}!`
+        title: 'Login berhasil!',
+        description: `Selamat datang kembali, ${data.data.username}!`,
       });
       return true;
+    } catch (error) {
+      toast({
+        title: 'Login gagal',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
     }
-    
-    toast({
-      title: "Login gagal",
-      description: "Username atau password salah",
-      variant: "destructive"
-    });
-    return false;
   };
 
-  const register = (userData) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Check if username exists
-    if (users.find(u => u.username === userData.username)) {
+  const register = async (userData) => {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      const { password: _, ...userWithoutPassword } = data.data;
+      setUser(userWithoutPassword);
+      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+
       toast({
-        title: "Registrasi gagal",
-        description: "Username sudah digunakan",
-        variant: "destructive"
+        title: 'Registrasi berhasil!',
+        description: 'Akun Anda telah dibuat. Selamat datang!',
+      });
+      return true;
+    } catch (error) {
+      toast({
+        title: 'Registrasi gagal',
+        description: error.message,
+        variant: 'destructive',
       });
       return false;
     }
-
-    // Check if email exists
-    if (users.find(u => u.email === userData.email)) {
-      toast({
-        title: "Registrasi gagal",
-        description: "Email sudah digunakan",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    const newUser = {
-      id: Date.now().toString(),
-      ...userData,
-      role: 'user',
-      rank: 'Newbie',
-      points: 1, // Starting point for new users
-      btcBalance: 0,
-      avatar: null,
-      joinDate: new Date().toISOString(),
-      totalPosts: 0,
-      totalTransactions: 0
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    
-    toast({
-      title: "Registrasi berhasil!",
-      description: "Akun Anda telah dibuat. Selamat datang!"
-    });
-    return true;
   };
 
   const logout = () => {
