@@ -1,167 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
+import { rankSystem, checkRankUp } from '@/lib/rankSystem';
 
 const AuthContext = createContext();
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
-  }, []);
-
-  const login = (username, password) => {
-    // Admin login
-    if (username === 'wanzofc' && password === 'wanz01') {
-      const adminUser = {
-        id: 'admin',
-        username: 'wanzofc',
-        email: 'admin@reddark.id',
-        role: 'admin',
-        rank: 'Owner',
-        points: 9000000999,
-        btcBalance: 0,
-        avatar: null,
-        joinDate: new Date().toISOString(),
-        totalPosts: 0,
-        totalTransactions: 0
-      };
-      setUser(adminUser);
-      localStorage.setItem('currentUser', JSON.stringify(adminUser));
-      toast({
-        title: "Login berhasil!",
-        description: "Selamat datang kembali, Admin!"
-      });
-      return true;
-    }
-
-    // Regular user login
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const foundUser = users.find(u => u.username === username && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-      toast({
-        title: "Login berhasil!",
-        description: `Selamat datang kembali, ${foundUser.username}!`
-      });
-      return true;
-    }
-    
-    toast({
-      title: "Login gagal",
-      description: "Username atau password salah",
-      variant: "destructive"
-    });
-    return false;
-  };
-
-  const register = (userData) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Check if username exists
-    if (users.find(u => u.username === userData.username)) {
-      toast({
-        title: "Registrasi gagal",
-        description: "Username sudah digunakan",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    // Check if email exists
-    if (users.find(u => u.email === userData.email)) {
-      toast({
-        title: "Registrasi gagal",
-        description: "Email sudah digunakan",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    const newUser = {
-      id: Date.now().toString(),
-      ...userData,
-      role: 'user',
-      rank: 'Newbie',
-      points: 1, // Starting point for new users
-      btcBalance: 0,
-      avatar: null,
-      joinDate: new Date().toISOString(),
-      totalPosts: 0,
-      totalTransactions: 0
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    
-    toast({
-      title: "Registrasi berhasil!",
-      description: "Akun Anda telah dibuat. Selamat datang!"
-    });
-    return true;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
-    toast({
-      title: "Logout berhasil",
-      description: "Sampai jumpa lagi!"
-    });
-  };
-
-  const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    
-    // Update in users array
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...updates };
-      localStorage.setItem('users', JSON.stringify(users));
-    }
-  };
-
-  const getRankInfo = (points) => {
-    if (points >= 1000000) return { name: 'Legend', color: 'rank-legend' };
-    if (points >= 500000) return { name: 'Mythic', color: 'rank-mythic' };
-    if (points >= 100000) return { name: 'Grandmaster', color: 'rank-grandmaster' };
-    if (points >= 10000) return { name: 'Elite', color: 'rank-elite' };
-    if (points >= 1000) return { name: 'Exclusive', color: 'rank-exclusive' };
-    if (points >= 500) return { name: 'Master', color: 'rank-master' };
-    if (points >= 100) return { name: 'Gold', color: 'rank-gold' };
-    if (points >= 25) return { name: 'Silver', color: 'rank-silver' };
-    return { name: 'Newbie', color: 'rank-newbie' };
-  };
-
-  return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      login,
-      register,
-      logout,
-      updateUser,
-      getRankInfo
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -169,4 +11,159 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const initDefaultData = () => {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    if (users.length === 0) {
+      const defaultUsers = [
+        {
+          id: 'admin-1',
+          username: 'wanz',
+          email: 'admin@reddrak.id',
+          password: 'wanz2',
+          role: 'admin',
+          rank: 'admin',
+          reputation: 1000,
+          avatar: 'https://storage.googleapis.com/hostinger-horizons-assets-prod/9c787284-7e6e-4715-85e1-97ef9b5e8b32/f2208a44311dd451c805151e8bd9c15c.webp',
+          bio: 'RedDrak ID Administrator',
+          joinedAt: new Date().toISOString(),
+          postsCount: 0,
+        }
+      ];
+      localStorage.setItem('users', JSON.stringify(defaultUsers));
+    }
+  };
+
+  useEffect(() => {
+    initDefaultData();
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      setUser(JSON.parse(currentUser));
+    }
+    setLoading(false);
+  }, []);
+
+  const updateUserInStorage = (updatedUser) => {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const userIndex = users.findIndex(u => u.id === updatedUser.id);
+    if (userIndex !== -1) {
+      users[userIndex] = updatedUser;
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
+  const login = async (username, password) => {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const foundUser = users.find(u => u.username === username && u.password === password);
+    
+    if (foundUser) {
+      setUser(foundUser);
+      localStorage.setItem('currentUser', JSON.stringify(foundUser));
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${foundUser.username}!`,
+      });
+      return true;
+    } else {
+      toast({
+        title: "Login Failed",
+        description: "Invalid username or password",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const register = async (userData) => {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    if (users.some(u => u.username === userData.username)) {
+      toast({ title: "Registration Failed", description: "Username already exists", variant: "destructive" });
+      return false;
+    }
+    
+    if (users.some(u => u.email === userData.email)) {
+      toast({ title: "Registration Failed", description: "Email already exists", variant: "destructive" });
+      return false;
+    }
+
+    const newUser = {
+      id: `user-${Date.now()}`,
+      ...userData,
+      role: 'user',
+      rank: 'newbie',
+      reputation: 0,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.username}`,
+      joinedAt: new Date().toISOString(),
+      postsCount: 0,
+    };
+
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    setUser(newUser);
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    localStorage.setItem('isNewUser', 'true'); // Flag for tour
+    
+    toast({ title: "Registration Successful", description: `Welcome to RedDrak ID, ${newUser.username}!` });
+    return true;
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('rankUp');
+    toast({ title: "Logged Out", description: "You have been logged out successfully" });
+  };
+  
+  const updateUser = (updatedData) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updatedData };
+    updateUserInStorage(updatedUser);
+  };
+
+  const addReputation = (amount) => {
+    if (!user) return;
+    const newReputation = (user.reputation || 0) + amount;
+    const oldRank = user.rank;
+    const newRank = checkRankUp(oldRank, newReputation);
+
+    const updatedUser = { ...user, reputation: newReputation };
+
+    if (newRank && newRank !== oldRank) {
+      updatedUser.rank = newRank;
+      const rankData = rankSystem.find(r => r.id === newRank);
+      localStorage.setItem('rankUp', JSON.stringify({ rank: rankData.name, icon: rankData.icon }));
+    }
+    
+    updateUserInStorage(updatedUser);
+  };
+  
+  const incrementPostsCount = () => {
+    if (!user) return;
+    const updatedUser = { ...user, postsCount: (user.postsCount || 0) + 1 };
+    updateUserInStorage(updatedUser);
+  };
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      updateUser,
+      addReputation,
+      incrementPostsCount,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

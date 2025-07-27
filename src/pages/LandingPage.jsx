@@ -1,188 +1,165 @@
+
 import React from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import LanguageSelector from '@/components/LanguageSelector';
-import { toast } from '@/components/ui/use-toast';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { Helmet } from 'react-helmet';
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
-
-  const handleLearnMore = () => {
-    toast({
-      title: "🚧 Fitur ini belum diimplementasikan—tapi jangan khawatir! Anda bisa memintanya di prompt berikutnya! 🚀"
-    });
-  };
+  const { language, toggleLanguage, translations } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <>
       <Helmet>
-        <title>RedDark.id - Forum Underground Indonesia</title>
-        <meta name="description" content="Forum diskusi dan marketplace underground Indonesia dengan sistem Bitcoin payment yang aman dan terpercaya" />
+        <title>RedDrak ID - {translations.hackerForum}</title>
+        <meta name="description" content={translations.forumDescription} />
       </Helmet>
+      
+      <div className="min-h-screen hacker-bg relative overflow-hidden">
+        {/* Matrix Rain Effect */}
+        <div className="matrix-rain">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div
+              key={i}
+              className="matrix-char"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${3 + Math.random() * 2}s`
+              }}
+            >
+              {String.fromCharCode(0x30A0 + Math.random() * 96)}
+            </div>
+          ))}
+        </div>
 
-      {/* Background Animation */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900"></div>
-        <div className="absolute inset-0 bg-black/50"></div>
-        
-        {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-white/20 rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -100, 0],
-              opacity: [0, 1, 0],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
-      </div>
+        {/* Top Bar */}
+        <div className="absolute top-0 right-0 p-4 z-10">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            >
+              <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs font-medium"
+            >
+              {language.toUpperCase()}
+            </Button>
+          </div>
+        </div>
 
-      {/* Language Selector */}
-      <div className="absolute top-4 right-4 z-10">
-        <LanguageSelector />
-      </div>
-
-      {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-        <div className="text-center max-w-4xl mx-auto">
-          {/* Logo/Title */}
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
+        {/* Main Content */}
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <motion.div 
+            className="text-center space-y-8 max-w-4xl mx-auto"
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="mb-6"
           >
-            <h1 className="text-5xl md:text-7xl font-bold gradient-text mb-3 floating">
-              RedDark.id
-            </h1>
-            <div className="flex items-center justify-center gap-2 text-orange-400">
-              <i className="fab fa-bitcoin text-xl bitcoin-glow"></i>
-              <span className="text-lg font-semibold">Bitcoin Powered</span>
-            </div>
-          </motion.div>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto"
-          >
-            {t('subtitle')}
-          </motion.p>
-
-          {/* Features */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
-          >
-            <div className="glass-effect p-6 rounded-lg hover-glow">
-              <i className="fas fa-shield-alt text-3xl text-blue-400 mb-4"></i>
-              <h3 className="text-lg font-semibold text-white mb-2">Aman & Anonim</h3>
-              <p className="text-gray-400">Sistem keamanan tingkat tinggi dengan enkripsi end-to-end</p>
-            </div>
-            <div className="glass-effect p-6 rounded-lg hover-glow">
-              <i className="fab fa-bitcoin text-3xl text-orange-400 mb-4"></i>
-              <h3 className="text-lg font-semibold text-white mb-2">Bitcoin Payment</h3>
-              <p className="text-gray-400">Transaksi menggunakan Bitcoin untuk privasi maksimal</p>
-            </div>
-            <div className="glass-effect p-6 rounded-lg hover-glow">
-              <i className="fas fa-users text-3xl text-green-400 mb-4"></i>
-              <h3 className="text-lg font-semibold text-white mb-2">Komunitas Aktif</h3>
-              <p className="text-gray-400">Ribuan member aktif dari seluruh Indonesia</p>
-            </div>
-          </motion.div>
-
-          {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Button
-              size="lg"
-              onClick={() => navigate('/forum')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg hover-glow"
+            {/* Logo */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="flex justify-center mb-8"
             >
-              <i className="fas fa-eye mr-2"></i>
-              {t('viewForum')}
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => navigate('/auth')}
-              className="border-white/30 text-white hover:bg-white/10 px-8 py-3 text-lg hover-glow"
-            >
-              <i className="fas fa-user-plus mr-2"></i>
-              {t('joinNow')}
-            </Button>
-            <Button
-              size="lg"
-              onClick={handleLearnMore}
-              variant="ghost"
-              className="text-white hover:bg-white/10 px-8 py-3 text-lg hover-glow"
-            >
-              <i className="fas fa-info-circle mr-2"></i>
-              Pelajari Lebih Lanjut
-            </Button>
-          </motion.div>
+              <img 
+                src="https://storage.googleapis.com/hostinger-horizons-assets-prod/9c787284-7e6e-4715-85e1-97ef9b5e8b32/f2208a44311dd451c805151e8bd9c15c.webp" 
+                alt="RedDrak ID" 
+                className="w-24 h-24 glow-red rounded-full"
+              />
+            </motion.div>
 
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
-            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8"
-          >
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">1,337+</div>
-              <div className="text-gray-400">Active Users</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">5,420+</div>
-              <div className="text-gray-400">Posts</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">₿2.5+</div>
-              <div className="text-gray-400">BTC Volume</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">99.9%</div>
-              <div className="text-gray-400">Uptime</div>
-            </div>
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="space-y-4"
+            >
+              <h1 className="text-6xl md:text-8xl font-black gradient-text text-shadow">
+                RedDrak ID
+              </h1>
+              <div className="typing-animation text-2xl md:text-3xl text-red-400 font-semibold">
+                {translations.hackerForum}
+              </div>
+            </motion.div>
+
+            {/* Description */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.8 }}
+              className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed"
+            >
+              {translations.forumDescription}
+            </motion.p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2, duration: 0.8 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            >
+              <Button
+                onClick={() => navigate('/register')}
+                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-3 text-lg font-semibold neon-border"
+              >
+                <i className="fas fa-user-plus mr-2"></i>
+                {translations.joinCommunity}
+              </Button>
+              
+              <Button
+                onClick={() => navigate('/login')}
+                variant="outline"
+                className="border-red-500 text-red-400 hover:bg-red-500/10 px-8 py-3 text-lg font-semibold"
+              >
+                <i className="fas fa-sign-in-alt mr-2"></i>
+                {translations.login}
+              </Button>
+            </motion.div>
+
+            {/* Features */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.6, duration: 0.8 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16"
+            >
+              {[
+                { icon: 'fa-shield-alt', title: 'Security Focus', desc: 'Advanced security discussions' },
+                { icon: 'fa-users', title: 'Community', desc: 'Connect with experts' },
+                { icon: 'fa-code', title: 'Tools & Scripts', desc: 'Share and discover tools' }
+              ].map((feature, index) => (
+                <motion.div
+                  key={index}
+                  className="glass-effect p-6 rounded-lg"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <i className={`fas ${feature.icon} text-3xl text-red-500 mb-4`}></i>
+                  <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+                  <p className="text-gray-400">{feature.desc}</p>
+                </motion.div>
+              ))}
+            </motion.div>
           </motion.div>
         </div>
       </div>
-
-      {/* Lottie Animation */}
-      <div className="absolute bottom-10 right-10 opacity-30">
-        <lottie-player
-          src="https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json"
-          background="transparent"
-          speed="1"
-          style={{ width: '200px', height: '200px' }}
-          loop
-          autoplay
-        ></lottie-player>
-      </div>
-    </div>
+    </>
   );
 };
 

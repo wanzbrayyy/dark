@@ -1,104 +1,114 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { Toaster } from '@/components/ui/toaster';
-import LandingPage from '@/pages/LandingPage';
-import ForumHome from '@/pages/ForumHome';
-import PostDetail from '@/pages/PostDetail';
-import UserProfile from '@/pages/UserProfile';
-import AuthPage from '@/pages/AuthPage';
-import MaintenancePage from '@/pages/MaintenancePage';
-import AdminDashboard from '@/pages/AdminDashboard';
-import DepositPage from '@/pages/DepositPage';
-import WithdrawPage from '@/pages/WithdrawPage';
-import NewPostPage from '@/pages/NewPostPage';
-import LeaderboardPage from '@/pages/LeaderboardPage';
-import ActivityHistoryPage from '@/pages/ActivityHistoryPage';
-import NotificationsPage from '@/pages/NotificationsPage';
-import { LanguageProvider } from '@/contexts/LanguageContext';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { ForumProvider } from '@/contexts/ForumContext';
-import { NotificationProvider } from '@/contexts/NotificationContext';
-import BottomNav from '@/components/BottomNav';
+
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import Layout from '@/components/Layout';
+import LandingPage from '@/pages/LandingPage';
+import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
+import Dashboard from '@/pages/Dashboard';
+import Forum from '@/pages/Forum';
+import ForumDetail from '@/pages/ForumDetail';
+import PostDetail from '@/pages/PostDetail';
+import NewPost from '@/pages/NewPost';
+import Profile from '@/pages/Profile';
+import UserProfile from '@/pages/UserProfile';
+import Messages from '@/pages/Messages';
+import AdminDashboard from '@/pages/AdminDashboard';
+import NotFound from '@/pages/NotFound';
+import MaintenanceMode from '@/components/MaintenanceMode';
+import RankUpNotification from '@/components/RankUpNotification';
+import { Helmet } from 'react-helmet';
+import UserTour from '@/components/UserTour';
 
-function AppContent() {
-  const { user } = useAuth();
-  return (
-    <>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/maintenance" element={<MaintenancePage />} />
-        <Route path="/dashboard/wanzadmin" element={<AdminDashboard />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
-        
-        <Route path="*" element={<MainAppRoutes />} />
-      </Routes>
-      {user && <BottomNav />}
-    </>
-  );
-}
-
-function MainAppRoutes() {
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+function App() {
+  const { user, loading } = useAuth();
+  const { theme } = useTheme();
+  const { language, translations } = useLanguage();
+  const location = useLocation();
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
-    const maintenanceStatus = localStorage.getItem('maintenanceMode');
-    const maintenanceEnd = localStorage.getItem('maintenanceEndTime');
-    
-    if (maintenanceStatus === 'true' && maintenanceEnd) {
-      const endTime = new Date(maintenanceEnd);
-      const now = new Date();
-      
-      if (now < endTime) {
-        setIsMaintenanceMode(true);
-      } else {
-        localStorage.removeItem('maintenanceMode');
-        localStorage.removeItem('maintenanceEndTime');
+    document.documentElement.className = theme;
+    document.documentElement.lang = language;
+  }, [theme, language]);
+  
+  useEffect(() => {
+      const isNewUser = localStorage.getItem('isNewUser');
+      if (user && isNewUser === 'true') {
+          setShowTour(true);
       }
-    }
-  }, []);
+  }, [user]);
 
-  if (isMaintenanceMode) {
-    return <Navigate to="/maintenance" replace />;
+  const handleTourComplete = () => {
+    setShowTour(false);
+    localStorage.removeItem('isNewUser');
+  };
+
+  const maintenanceMode = localStorage.getItem('maintenanceMode') === 'true';
+  const maintenanceStart = localStorage.getItem('maintenanceStart');
+  const maintenanceEnd = localStorage.getItem('maintenanceEnd');
+  
+  const now = new Date();
+  const isMaintenanceActive = maintenanceMode && 
+                              (!maintenanceStart || now >= new Date(maintenanceStart)) && 
+                              (!maintenanceEnd || now < new Date(maintenanceEnd));
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center hacker-bg">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-red-400">{translations.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isMaintenanceActive && (!user || user.role !== 'admin')) {
+    return <MaintenanceMode />;
   }
 
   return (
-    <Routes>
-      <Route path="/forum" element={<ForumHome />} />
-      <Route path="/post/new" element={<NewPostPage />} />
-      <Route path="/post/:id" element={<PostDetail />} />
-      <Route path="/profile/:username" element={<UserProfile />} />
-      <Route path="/deposit" element={<DepositPage />} />
-      <Route path="/withdraw" element={<WithdrawPage />} />
-      <Route path="/history" element={<ActivityHistoryPage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="*" element={<Navigate to="/forum" replace />} />
-    </Routes>
-  );
-}
-
-function App() {
-  return (
-    <LanguageProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <ForumProvider>
-            <Router>
-              <div className="min-h-screen pb-20 md:pb-0">
-                <Helmet>
-                  <title>RedDark.id - Forum Underground Indonesia</title>
-                  <meta name="description" content="Forum diskusi dan marketplace underground Indonesia dengan sistem Bitcoin payment" />
-                </Helmet>
-                <AppContent />
-                <Toaster />
-              </div>
-            </Router>
-          </ForumProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </LanguageProvider>
+    <>
+      <Helmet>
+        <title>RedDrak ID - {translations.hackerForum}</title>
+        <meta name="description" content={translations.forumDescription} />
+        <html lang={language} />
+      </Helmet>
+      
+      <div className="min-h-screen hacker-bg">
+        {showTour && <UserTour onComplete={handleTourComplete} />}
+        <RankUpNotification />
+        <AnimatePresence mode="wait" initial={false}>
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
+            <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+            
+            <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="forum" element={<Forum />} />
+              <Route path="forum/:forumId" element={<ForumDetail />} />
+              <Route path="post/:postId" element={<PostDetail />} />
+              <Route path="new-post" element={<NewPost />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="user/:username" element={<UserProfile />} />
+              <Route path="messages" element={<Messages />} />
+              {user?.role === 'admin' && (
+                <Route path="admin" element={<AdminDashboard />} />
+              )}
+            </Route>
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
 

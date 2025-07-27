@@ -1,68 +1,73 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
 
-const UserTour = () => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const { user } = useAuth();
+const tourSteps = [
+  {
+    title: 'Selamat Datang di RedDrak ID!',
+    text: 'Ini adalah tur singkat untuk membantu Anda memulai. Anda dapat melewatinya kapan saja.',
+    targetId: 'top-bar-title' 
+  },
+  {
+    title: 'Navigasi Utama',
+    text: 'Gunakan bilah navigasi bawah ini untuk menjelajahi fitur-fitur utama seperti Dashboard, Forum, dan Profil Anda.',
+    targetId: 'bottom-nav-forum' 
+  },
+  {
+    title: 'Buat Postingan Pertama Anda',
+    text: 'Bagikan pengetahuan Anda dengan mengklik tombol "+" untuk membuat postingan baru.',
+    targetId: 'bottom-nav-new-post' 
+  },
+  {
+    title: 'Kelola Profil Anda',
+    text: 'Klik ikon profil untuk mengedit detail Anda, melihat reputasi, dan pangkat Anda.',
+    targetId: 'bottom-nav-profile'
+  },
+  {
+    title: 'Siap Menjelajah!',
+    text: 'Anda sekarang siap untuk menjelajahi RedDrak ID. Selamat bersenang-senang dan tetap etis!',
+    targetId: null
+  }
+];
 
-  const tourSteps = [
-    {
-      title: "Selamat Datang di RedDark.id! 🎉",
-      content: "Ini adalah forum underground Indonesia dengan sistem Bitcoin. Mari kita mulai tur singkat!",
-      target: null
-    },
-    {
-      title: "Navigasi Forum 🧭",
-      content: "Gunakan menu navigasi untuk menjelajahi berbagai kategori forum seperti Tools, Akun, Script, dan Jasa.",
-      target: ".navigation-menu"
-    },
-    {
-      title: "Sistem Ranking 🏆",
-      content: "Anda memulai sebagai Newbie dengan 1 poin. Posting dan berinteraksi untuk naik pangkat ke Silver, Gold, Master, hingga Exclusive!",
-      target: ".user-rank"
-    },
-    {
-      title: "Bitcoin Wallet 💰",
-      content: "Kelola saldo Bitcoin Anda untuk transaksi di forum. Gunakan fitur Deposit dan Withdraw dengan aman.",
-      target: ".btc-balance"
-    },
-    {
-      title: "Siap Memulai! 🚀",
-      content: "Sekarang Anda siap menjelajahi RedDark.id. Selamat berinteraksi dan jaga keamanan akun Anda!",
-      target: null
+const UserTour = ({ onComplete }) => {
+  const [stepIndex, setStepIndex] = useState(0);
+
+  const currentStep = tourSteps[stepIndex];
+  const targetElement = currentStep.targetId ? document.getElementById(currentStep.targetId) : null;
+  
+  const getModalPosition = () => {
+    if (!targetElement) {
+        return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
     }
-  ];
+    const rect = targetElement.getBoundingClientRect();
+    const top = rect.bottom + 20; // 20px below the element
+    let left = rect.left + rect.width / 2;
 
-  useEffect(() => {
-    if (user && !localStorage.getItem(`tour_completed_${user.id}`)) {
-      setIsVisible(true);
+    const modalWidth = 320; 
+    
+    if (left - (modalWidth/2) < 10) {
+        left = (modalWidth/2) + 10;
     }
-  }, [user]);
+    if (left + (modalWidth/2) > window.innerWidth - 10) {
+        left = window.innerWidth - (modalWidth/2) - 10;
+    }
 
-  const nextStep = () => {
-    if (currentStep < tourSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
+    return { top: `${top}px`, left: `${left}px`, transform: 'translateX(-50%)' };
+  };
+
+  const handleNext = () => {
+    if (stepIndex < tourSteps.length - 1) {
+      setStepIndex(stepIndex + 1);
     } else {
-      completeTour();
+      onComplete();
     }
   };
 
-  const skipTour = () => {
-    completeTour();
+  const handleSkip = () => {
+    onComplete();
   };
-
-  const completeTour = () => {
-    setIsVisible(false);
-    if (user) {
-      localStorage.setItem(`tour_completed_${user.id}`, 'true');
-    }
-  };
-
-  if (!isVisible) return null;
 
   return (
     <AnimatePresence>
@@ -70,46 +75,36 @@ const UserTour = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center blur-overlay"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200]"
       >
+        {targetElement && (
+            <div
+                className="fixed bg-red-500/50 rounded-lg transition-all duration-300 pointer-events-none animate-pulse"
+                style={{
+                    top: targetElement.getBoundingClientRect().top - 5,
+                    left: targetElement.getBoundingClientRect().left - 5,
+                    width: targetElement.getBoundingClientRect().width + 10,
+                    height: targetElement.getBoundingClientRect().height + 10,
+                }}
+            />
+        )}
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-effect rounded-lg p-6 max-w-md w-full mx-4"
+          key={stepIndex}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className="fixed p-6 rounded-lg glass-effect neon-border w-80"
+          style={getModalPosition()}
         >
           <div className="text-center">
-            <h3 className="text-xl font-bold text-white mb-4">
-              {tourSteps[currentStep].title}
-            </h3>
-            <p className="text-gray-300 mb-6">
-              {tourSteps[currentStep].content}
-            </p>
-            
-            <div className="flex items-center justify-center mb-4">
-              {tourSteps.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full mx-1 ${
-                    index === currentStep ? 'bg-blue-500' : 'bg-gray-600'
-                  }`}
-                />
-              ))}
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                onClick={skipTour}
-                className="text-gray-400 hover:text-white"
-              >
-                Lewati
-              </Button>
-              <Button
-                onClick={nextStep}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {currentStep === tourSteps.length - 1 ? 'Selesai' : 'Lanjut'}
+            <h3 className="text-lg font-bold gradient-text mb-2">{currentStep.title}</h3>
+            <p className="text-sm text-gray-300 mb-6">{currentStep.text}</p>
+            <div className="flex justify-between items-center">
+              <Button onClick={handleSkip} variant="ghost" size="sm" className="text-gray-400">Lewati</Button>
+              <div className="text-xs text-gray-500">{stepIndex + 1} / {tourSteps.length}</div>
+              <Button onClick={handleNext} size="sm" className="bg-gradient-to-r from-red-600 to-red-700">
+                {stepIndex === tourSteps.length - 1 ? 'Selesai' : 'Lanjut'} <i className="fas fa-arrow-right ml-2"></i>
               </Button>
             </div>
           </div>

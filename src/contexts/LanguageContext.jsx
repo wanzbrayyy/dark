@@ -1,186 +1,147 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const LanguageContext = createContext();
 
 const translations = {
-  id: {
-    // Navigation
-    home: 'Beranda',
-    forum: 'Forum',
-    profile: 'Profil',
-    login: 'Masuk',
-    register: 'Daftar',
-    logout: 'Keluar',
-    deposit: 'Deposit',
-    withdraw: 'Tarik',
-    notifications: 'Notifikasi',
-    
-    // Landing Page
-    welcome: 'Selamat Datang di RedDark.id',
-    subtitle: 'Forum Underground Indonesia dengan Sistem Bitcoin',
-    viewForum: 'Lihat Forum',
-    joinNow: 'Gabung Sekarang',
-    
-    // Forum
-    categories: 'Kategori',
-    tools: 'Tools',
-    accounts: 'Akun',
-    scripts: 'Script',
-    services: 'Jasa',
-    general: 'Umum',
-    search: 'Cari...',
-    newPost: 'Post Baru',
-    
-    // Post
-    comments: 'Komentar',
-    download: 'Download',
-    report: 'Laporkan',
-    vote: 'Vote',
-    
-    // Profile
-    balance: 'Saldo',
-    transactions: 'Transaksi',
-    posts: 'Postingan',
-    rank: 'Pangkat',
-    
-    // Maintenance
-    maintenance: 'Sedang Dalam Pemeliharaan',
-    maintenanceDesc: 'Situs sedang dalam pemeliharaan. Silakan kembali lagi nanti.',
-    backToHome: 'Kembali ke Beranda',
-    
-    // Admin
-    adminPanel: 'Panel Admin',
-    maintenanceMode: 'Mode Pemeliharaan',
-    settings: 'Pengaturan',
-    
-    // Bitcoin
-    btcAddress: 'Alamat Bitcoin',
-    amount: 'Jumlah',
-    generateQR: 'Generate QR Code',
-    
-    // Ranks
-    Newbie: 'Newbie',
-    Silver: 'Silver',
-    Gold: 'Gold',
-    Master: 'Master',
-    Exclusive: 'Exclusive',
-    Elite: 'Elite',
-    Grandmaster: 'Grandmaster',
-    Mythic: 'Mythic',
-    Legend: 'Legend',
-    Owner: 'Owner',
-  },
   en: {
     // Navigation
-    home: 'Home',
+    dashboard: 'Dashboard',
     forum: 'Forum',
+    newPost: 'New Post',
     profile: 'Profile',
-    login: 'Login',
-    register: 'Register',
+    messages: 'Messages',
+    admin: 'Admin',
     logout: 'Logout',
-    deposit: 'Deposit',
-    withdraw: 'Withdraw',
-    notifications: 'Notifications',
+    
+    // Common
+    loading: 'Loading...',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    edit: 'Edit',
+    reply: 'Reply',
+    like: 'Like',
+    share: 'Share',
+    copy: 'Copy',
+    search: 'Search',
     
     // Landing Page
-    welcome: 'Welcome to RedDark.id',
-    subtitle: 'Indonesian Underground Forum with Bitcoin System',
-    viewForum: 'View Forum',
-    joinNow: 'Join Now',
+    welcomeToRedDrak: 'Welcome to RedDrak ID',
+    hackerForum: 'Hacker Community Forum',
+    forumDescription: 'Join the ultimate hacker community. Share knowledge, discuss tools, and connect with fellow security enthusiasts.',
+    joinCommunity: 'Join Community',
+    learnMore: 'Learn More',
     
-    // Forum
-    categories: 'Categories',
-    tools: 'Tools',
-    accounts: 'Accounts',
-    scripts: 'Scripts',
-    services: 'Services',
-    general: 'General',
-    search: 'Search...',
-    newPost: 'New Post',
+    // Auth
+    login: 'Login',
+    register: 'Register',
+    username: 'Username',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    bio: 'Bio',
+    alreadyHaveAccount: 'Already have an account?',
+    dontHaveAccount: "Don't have an account?",
     
-    // Post
-    comments: 'Comments',
-    download: 'Download',
-    report: 'Report',
-    vote: 'Vote',
+    // Posts
+    title: 'Title',
+    description: 'Description',
+    category: 'Category',
+    categories: {
+      general: 'General',
+      tools: 'Tools',
+      malware: 'Malware',
+      learn: 'Learn',
+      ransomware: 'Ransomware'
+    },
     
-    // Profile
-    balance: 'Balance',
-    transactions: 'Transactions',
-    posts: 'Posts',
-    rank: 'Rank',
+    // User Ranks
+    ranks: {
+      newbie: 'Newbie',
+      member: 'Member',
+      advanced: 'Advanced',
+      expert: 'Expert',
+      moderator: 'Moderator',
+      admin: 'Admin'
+    },
     
     // Maintenance
-    maintenance: 'Under Maintenance',
-    maintenanceDesc: 'Site is under maintenance. Please come back later.',
-    backToHome: 'Back to Home',
-    
-    // Admin
-    adminPanel: 'Admin Panel',
     maintenanceMode: 'Maintenance Mode',
-    settings: 'Settings',
+    maintenanceModeActive: 'System is under maintenance',
     
-    // Bitcoin
-    btcAddress: 'Bitcoin Address',
-    amount: 'Amount',
-    generateQR: 'Generate QR Code',
+    // Notifications
+    featureNotImplemented: '🚧 This feature isn\'t implemented yet—but don\'t worry! You can request it in your next prompt! 🚀'
+  },
+  id: {
+    // Navigation
+    dashboard: 'Dashboard',
+    forum: 'Forum',
+    newPost: 'Post Baru',
+    profile: 'Profil',
+    messages: 'Pesan',
+    admin: 'Admin',
+    logout: 'Keluar',
     
-    // Ranks
-    Newbie: 'Newbie',
-    Silver: 'Silver',
-    Gold: 'Gold',
-    Master: 'Master',
-    Exclusive: 'Exclusive',
-    Elite: 'Elite',
-    Grandmaster: 'Grandmaster',
-    Mythic: 'Mythic',
-    Legend: 'Legend',
-    Owner: 'Owner',
+    // Common
+    loading: 'Memuat...',
+    save: 'Simpan',
+    cancel: 'Batal',
+    delete: 'Hapus',
+    edit: 'Edit',
+    reply: 'Balas',
+    like: 'Suka',
+    share: 'Bagikan',
+    copy: 'Salin',
+    search: 'Cari',
+    
+    // Landing Page
+    welcomeToRedDrak: 'Selamat Datang di RedDrak ID',
+    hackerForum: 'Forum Komunitas Hacker',
+    forumDescription: 'Bergabunglah dengan komunitas hacker terbaik. Berbagi pengetahuan, diskusi tools, dan terhubung dengan sesama enthusiast keamanan.',
+    joinCommunity: 'Gabung Komunitas',
+    learnMore: 'Pelajari Lebih Lanjut',
+    
+    // Auth
+    login: 'Masuk',
+    register: 'Daftar',
+    username: 'Username',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Konfirmasi Password',
+    bio: 'Bio',
+    alreadyHaveAccount: 'Sudah punya akun?',
+    dontHaveAccount: 'Belum punya akun?',
+    
+    // Posts
+    title: 'Judul',
+    description: 'Deskripsi',
+    category: 'Kategori',
+    categories: {
+      general: 'Umum',
+      tools: 'Tools',
+      malware: 'Malware',
+      learn: 'Belajar',
+      ransomware: 'Ransomware'
+    },
+    
+    // User Ranks
+    ranks: {
+      newbie: 'Pemula',
+      member: 'Member',
+      advanced: 'Lanjutan',
+      expert: 'Ahli',
+      moderator: 'Moderator',
+      admin: 'Admin'
+    },
+    
+    // Maintenance
+    maintenanceMode: 'Mode Maintenance',
+    maintenanceModeActive: 'Sistem sedang dalam pemeliharaan',
+    
+    // Notifications
+    featureNotImplemented: '🚧 Fitur ini belum diimplementasikan—tapi jangan khawatir! Anda bisa memintanya di prompt berikutnya! 🚀'
   }
-};
-
-export const LanguageProvider = ({ children }) => {
-  const [currentLanguage, setCurrentLanguage] = useState('id');
-  const [availableLanguages, setAvailableLanguages] = useState([]);
-
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('language') || 'id';
-    setCurrentLanguage(savedLanguage);
-    
-    setAvailableLanguages([
-      { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
-      { code: 'en', name: 'English', flag: '🇬🇧' },
-      { code: 'ja', name: '日本語', flag: '🇯🇵' },
-      { code: 'ar', name: 'العربية', flag: '🇸🇦' },
-      { code: 'es', name: 'Español', flag: '🇪🇸' },
-      { code: 'fr', name: 'Français', flag: '🇫🇷' },
-      { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-      { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
-      { code: 'sw', name: 'Kiswahili', flag: '🇰🇪' },
-    ]);
-  }, []);
-
-  const changeLanguage = (languageCode) => {
-    setCurrentLanguage(languageCode);
-    localStorage.setItem('language', languageCode);
-  };
-
-  const t = (key) => {
-    // For dynamic content, real-time translation would need an API.
-    // This is a simulation for static keys.
-    return translations[currentLanguage]?.[key] || translations.id[key] || key;
-  };
-
-  return (
-    <LanguageContext.Provider value={{
-      currentLanguage,
-      availableLanguages,
-      changeLanguage,
-      t
-    }}>
-      {children}
-    </LanguageContext.Provider>
-  );
 };
 
 export const useLanguage = () => {
@@ -189,4 +150,28 @@ export const useLanguage = () => {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
+};
+
+export const LanguageProvider = ({ children }) => {
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('language') || 'id';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
+
+  const toggleLanguage = () => {
+    setLanguage(prev => prev === 'en' ? 'id' : 'en');
+  };
+
+  return (
+    <LanguageContext.Provider value={{ 
+      language, 
+      toggleLanguage, 
+      translations: translations[language] 
+    }}>
+      {children}
+    </LanguageContext.Provider>
+  );
 };
