@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,33 +9,22 @@ import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { toast } from '@/components/ui/use-toast';
 import { getRankDetails } from '@/lib/rankSystem';
+import { supabase } from '@/lib/supabaseClient';
 
-const Reply = ({ reply, onReply, onLike, level = 0 }) => {
-  const navigate = useNavigate();
+const Reply = ({ reply, onReply, onLike, level = 0, allReplies }) => {
   const { translations } = useLanguage();
   const { user } = useAuth();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState('');
-  const [subReplies, setSubReplies] = useState([]);
-  const [authorDetails, setAuthorDetails] = useState(null);
-
-  useEffect(() => {
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const author = allUsers.find(u => u.id === reply.authorId);
-    setAuthorDetails(author);
-
-    const allReplies = JSON.parse(localStorage.getItem('replies') || '[]');
-    const repliesForThis = allReplies.filter(r => r.parentId === reply.id);
-    setSubReplies(repliesForThis);
-  }, [reply.id, reply.authorId]);
   
+  const subReplies = allReplies.filter(r => r.parent_id === reply.id);
+  const rankDetails = getRankDetails(reply.author?.rank || 0);
+
   const handleReplySubmit = () => {
     onReply(replyContent, reply.id);
     setReplyContent('');
     setShowReplyForm(false);
   };
-  
-  const rankDetails = authorDetails ? getRankDetails(authorDetails.rank) : null;
 
   return (
     <motion.div 
@@ -45,18 +34,18 @@ const Reply = ({ reply, onReply, onLike, level = 0 }) => {
       className={`glass-effect p-4 rounded-lg ${level > 0 ? 'ml-4 mt-4 border-l-2 border-red-500/20' : ''}`}
     >
       <div className="flex items-start space-x-3">
-        {authorDetails && (
-          <img src={authorDetails.avatar} alt={authorDetails.username} className="w-10 h-10 rounded-full" />
+        {reply.author && (
+          <img src={reply.author.avatar_url || `https://api.dicebear.com/6.x/bottts/svg?seed=${reply.author.username}`} alt={reply.author.username} className="w-10 h-10 rounded-full" />
         )}
         <div className="flex-1">
           <div className="flex items-center space-x-2">
-            <Link to={`/user/${reply.author}`} className={`font-semibold hover:underline ${rankDetails?.color}`}>{reply.author}</Link>
-            <span className="text-xs text-gray-500">{new Date(reply.createdAt).toLocaleString()}</span>
+            <Link to={`/user/${reply.author.username}`} className={`font-semibold hover:underline ${rankDetails?.color}`}>{reply.author.username}</Link>
+            <span className="text-xs text-gray-500">{new Date(reply.created_at).toLocaleString()}</span>
           </div>
           <p className="text-gray-300 mt-1">{reply.content}</p>
           <div className="flex items-center space-x-4 text-sm mt-2 text-gray-400">
             <button onClick={() => onLike(reply.id)} className="hover:text-red-400">
-              <i className="fas fa-heart mr-1"></i>{translations.like} ({reply.likes.length || 0})
+              <i className="fas fa-heart mr-1"></i>{translations.like} ({reply.likes || 0})
             </button>
             <button onClick={() => setShowReplyForm(!showReplyForm)} className="hover:text-red-400">
               <i className="fas fa-reply mr-1"></i>{translations.reply}
@@ -64,129 +53,93 @@ const Reply = ({ reply, onReply, onLike, level = 0 }) => {
           </div>
         </div>
       </div>
-      {showReplyForm && (
+      {showReplyForm && user && (
         <div className="ml-12 mt-4 space-y-2">
-          <Textarea value={replyContent} onChange={(e) => setReplyContent(e.target.value)} placeholder={`Balas ke ${reply.author}...`} className="bg-black/50 border-red-500/30 text-white" rows={2}/>
+          <Textarea value={replyContent} onChange={(e) => setReplyContent(e.target.value)} placeholder={`Balas ke ${reply.author.username}...`} className="bg-black/50 border-red-500/30 text-white" rows={2}/>
           <Button onClick={handleReplySubmit} size="sm">Kirim Balasan</Button>
         </div>
       )}
       {subReplies.length > 0 && (
         <div className="mt-2">
-            {subReplies.map(subReply => <Reply key={subReply.id} reply={subReply} onReply={onReply} onLike={onLike} level={level + 1} />)}
+            {subReplies.map(subReply => <Reply key={subReply.id} reply={subReply} onReply={onReply} onLike={onLike} level={level + 1} allReplies={allReplies} />)}
         </div>
       )}
     </motion.div>
   );
 };
 
-
 const PostDetail = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const { translations } = useLanguage();
-  const { user, addReputation } = useAuth();
+  const { user } = useAuth();
   const [post, setPost] = useState(null);
   const [replies, setReplies] = useState([]);
   const [newReply, setNewReply] = useState('');
-  const [authorDetails, setAuthorDetails] = useState(null);
 
-  useEffect(() => {
-    const posts = JSON.parse(localStorage.getItem('posts') || '[]');
-    const foundPost = posts.find(p => p.id === postId);
-    
-    if (!foundPost) {
+  const fetchPostAndReplies = useCallback(async () => {
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('*, author:users(*)')
+      .eq('id', postId)
+      .single();
+
+    if (postError || !postData) {
+      toast({ title: "Error", description: "Post not found.", variant: "destructive" });
       navigate('/forum');
       return;
     }
-    
-    setPost(p => ({ ...p, ...foundPost, likes: Array.isArray(foundPost.likes) ? foundPost.likes : [] }));
-    
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    setAuthorDetails(allUsers.find(u => u.id === foundPost.authorId));
+    setPost(postData);
 
-    const allReplies = JSON.parse(localStorage.getItem('replies') || '[]');
-    const postReplies = allReplies.filter(reply => reply.postId === postId && !reply.parentId);
-    setReplies(postReplies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    const { data: repliesData, error: repliesError } = await supabase
+      .from('post_details')
+      .select('*, author:users(*)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (repliesError) {
+      toast({ title: "Error", description: "Failed to fetch replies.", variant: "destructive" });
+    } else {
+      setReplies(repliesData);
+    }
   }, [postId, navigate]);
 
-  const handleReply = (content, parentId = null) => {
-    if (!content.trim()) {
-      toast({ title: "Error", description: "Isi balasan tidak boleh kosong", variant: "destructive" });
-      return;
-    }
+  useEffect(() => {
+    fetchPostAndReplies();
+    const channel = supabase.channel(`post-details-${postId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'post_details', filter: `post_id=eq.${postId}` }, payload => {
+        console.log('Reply change received!', payload);
+        fetchPostAndReplies();
+      })
+      .subscribe();
 
-    const reply = {
-      id: `reply-${Date.now()}`, postId: postId, parentId, content, author: user.username, authorId: user.id, createdAt: new Date().toISOString(), likes: []
+    return () => {
+      supabase.removeChannel(channel);
     };
+  }, [fetchPostAndReplies, postId]);
 
-    const allReplies = JSON.parse(localStorage.getItem('replies') || '[]');
-    allReplies.push(reply);
-    localStorage.setItem('replies', JSON.stringify(allReplies));
+  const handleReply = async (content, parentId = null) => {
+    if (!content.trim() || !user) return;
+    
+    const { error } = await supabase.from('post_details').insert({
+      content,
+      post_id: postId,
+      author_id: user.id,
+      parent_id: parentId,
+    });
 
-    if (parentId) {
-        // This is a nested reply. We don't add it to the top-level state. The component will re-render and find it.
-        // To trigger a re-render of the parent, we can just update a dummy state or reload replies.
-        const postReplies = allReplies.filter(r => r.postId === postId && !r.parentId);
-        setReplies(postReplies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-        setReplies(prev => [reply, ...prev]);
-        setNewReply('');
+      setNewReply('');
+      toast({ title: "Balasan Terkirim", description: "Balasan Anda telah berhasil dikirim!" });
     }
-
-    addReputation(5);
-    toast({ title: "Balasan Terkirim", description: "Balasan Anda telah berhasil dikirim!" });
   };
 
-  const handleLikePost = () => {
-    if (!user) return;
-    const allPosts = JSON.parse(localStorage.getItem('posts') || '[]');
-    const postIndex = allPosts.findIndex(p => p.id === postId);
-    if(postIndex === -1) return;
-    
-    const postToUpdate = allPosts[postIndex];
-    postToUpdate.likes = Array.isArray(postToUpdate.likes) ? postToUpdate.likes : [];
+  const handleLikePost = () => { /* ... (to be implemented) ... */ };
+  const handleLikeReply = () => { /* ... (to be implemented) ... */ };
 
-    const userLikeIndex = postToUpdate.likes.indexOf(user.id);
-
-    if (userLikeIndex !== -1) {
-      postToUpdate.likes.splice(userLikeIndex, 1);
-      toast({ title: "Post Unliked", description: "You've unliked this post." });
-    } else {
-      postToUpdate.likes.push(user.id);
-      addReputation(2);
-      toast({ title: "Post Liked", description: "You've liked this post." });
-    }
-    
-    setPost(postToUpdate);
-    allPosts[postIndex] = postToUpdate;
-    localStorage.setItem('posts', JSON.stringify(allPosts));
-  };
-  
-  const handleLikeReply = (replyId) => {
-    if (!user) return;
-    const allReplies = JSON.parse(localStorage.getItem('replies') || '[]');
-    const replyIndex = allReplies.findIndex(r => r.id === replyId);
-    if (replyIndex === -1) return;
-
-    const replyToUpdate = allReplies[replyIndex];
-    replyToUpdate.likes = Array.isArray(replyToUpdate.likes) ? replyToUpdate.likes : [];
-    
-    const userLikeIndex = replyToUpdate.likes.indexOf(user.id);
-    if (userLikeIndex !== -1) {
-        replyToUpdate.likes.splice(userLikeIndex, 1);
-    } else {
-        replyToUpdate.likes.push(user.id);
-    }
-    
-    allReplies[replyIndex] = replyToUpdate;
-    localStorage.setItem('replies', JSON.stringify(allReplies));
-    
-    // Force re-render of replies
-    const postReplies = allReplies.filter(reply => reply.postId === postId && !reply.parentId);
-    setReplies(postReplies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-  };
-
-  if (!post || !authorDetails) {
+  if (!post) {
     return (
       <div className="p-4 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
@@ -195,7 +148,8 @@ const PostDetail = () => {
     );
   }
 
-  const authorRankDetails = getRankDetails(authorDetails.rank);
+  const authorRankDetails = getRankDetails(post.author?.rank || 0);
+  const topLevelReplies = replies.filter(r => !r.parent_id);
 
   return (
     <>
@@ -206,39 +160,41 @@ const PostDetail = () => {
       
       <div className="p-4 space-y-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-effect p-6 rounded-lg neon-border">
-          <div className="flex items-center space-x-4 mb-4">
-             <img src={authorDetails.avatar} alt={authorDetails.username} className="w-12 h-12 rounded-full"/>
-             <div>
-                <Link to={`/user/${authorDetails.username}`} className={`text-lg font-bold hover:underline ${authorRankDetails.color}`}>{post.author}</Link>
-                <div className="flex items-center space-x-4 text-sm text-gray-400">
-                    <span><i className="fas fa-calendar mr-1"></i>{new Date(post.createdAt).toLocaleString()}</span>
-                    <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded">{post.category}</span>
-                </div>
-             </div>
-          </div>
+          {post.author && (
+            <div className="flex items-center space-x-4 mb-4">
+              <img src={post.author.avatar_url || `https://api.dicebear.com/6.x/bottts/svg?seed=${post.author.username}`} alt={post.author.username} className="w-12 h-12 rounded-full"/>
+              <div>
+                  <Link to={`/user/${post.author.username}`} className={`text-lg font-bold hover:underline ${authorRankDetails.color}`}>{post.author.username}</Link>
+                  <div className="flex items-center space-x-4 text-sm text-gray-400">
+                      <span><i className="fas fa-calendar mr-1"></i>{new Date(post.created_at).toLocaleString()}</span>
+                  </div>
+              </div>
+            </div>
+          )}
           <h1 className="text-3xl font-bold text-white mb-4">{post.title}</h1>
-          {post.image && <div className="mb-4"><img src={post.image} alt={post.title} className="w-full max-w-md rounded-lg" /></div>}
           <div className="text-gray-300 whitespace-pre-wrap mb-6">{post.content}</div>
           <div className="flex items-center space-x-4">
-            <Button onClick={handleLikePost} variant="ghost" className="text-gray-400 hover:text-red-400"><i className="fas fa-heart mr-2"></i>{translations.like} ({post.likes.length || 0})</Button>
+            <Button onClick={handleLikePost} variant="ghost" className="text-gray-400 hover:text-red-400"><i className="fas fa-heart mr-2"></i>{translations.like} ({post.likes || 0})</Button>
             <Button onClick={() => navigator.clipboard.writeText(window.location.href)} variant="ghost" className="text-gray-400 hover:text-red-400"><i className="fas fa-share mr-2"></i>{translations.share}</Button>
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-effect p-6 rounded-lg">
-          <h2 className="text-xl font-bold text-white mb-4"><i className="fas fa-reply mr-2 text-red-400"></i>{translations.reply}</h2>
-          <div className="space-y-4">
-            <Textarea value={newReply} onChange={(e) => setNewReply(e.target.value)} placeholder="Tulis balasan Anda..." className="bg-black/50 border-red-500/30 text-white focus:border-red-500" rows={4} />
-            <Button onClick={() => handleReply(newReply)} className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"><i className="fas fa-paper-plane mr-2"></i>Kirim Balasan</Button>
-          </div>
-        </motion.div>
+        {user && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-effect p-6 rounded-lg">
+            <h2 className="text-xl font-bold text-white mb-4"><i className="fas fa-reply mr-2 text-red-400"></i>{translations.reply}</h2>
+            <div className="space-y-4">
+              <Textarea value={newReply} onChange={(e) => setNewReply(e.target.value)} placeholder="Tulis balasan Anda..." className="bg-black/50 border-red-500/30 text-white focus:border-red-500" rows={4} />
+              <Button onClick={() => handleReply(newReply)} className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"><i className="fas fa-paper-plane mr-2"></i>Kirim Balasan</Button>
+            </div>
+          </motion.div>
+        )}
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-4">
-          <h2 className="text-xl font-bold text-white"><i className="fas fa-comments mr-2 text-red-400"></i>Balasan ({replies.length})</h2>
-          {replies.length > 0 ? (
+          <h2 className="text-xl font-bold text-white"><i className="fas fa-comments mr-2 text-red-400"></i>Balasan ({topLevelReplies.length})</h2>
+          {topLevelReplies.length > 0 ? (
             <div className="space-y-4">
-              {replies.map((reply) => (
-                <Reply key={reply.id} reply={reply} onReply={handleReply} onLike={handleLikeReply}/>
+              {topLevelReplies.map((reply) => (
+                <Reply key={reply.id} reply={reply} onReply={handleReply} onLike={handleLikeReply} allReplies={replies} />
               ))}
             </div>
           ) : (

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 const ForumDetail = () => {
   const { forumId } = useParams();
@@ -19,22 +20,47 @@ const ForumDetail = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Load forum details
-    const forums = JSON.parse(localStorage.getItem('forums') || '[]');
-    const foundForum = forums.find(f => f.id === forumId);
-    
-    if (!foundForum) {
+    fetchForumAndPosts();
+    const postsChannel = supabase.channel(`public:posts:forum_id=eq.${forumId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts', filter: `forum_id=eq.${forumId}` }, payload => {
+        console.log('Post change received!', payload);
+        fetchForumAndPosts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postsChannel);
+    };
+  }, [forumId, navigate]);
+
+  const fetchForumAndPosts = async () => {
+    // Fetch forum details
+    const { data: forumData, error: forumError } = await supabase
+      .from('forums')
+      .select('*, creator:users(username)')
+      .eq('id', forumId)
+      .single();
+
+    if (forumError || !forumData) {
+      toast({ title: "Error", description: "Forum not found", variant: "destructive" });
       navigate('/forum');
       return;
     }
-    
-    setForum(foundForum);
+    setForum(forumData);
 
-    // Load posts for this forum
-    const allPosts = JSON.parse(localStorage.getItem('posts') || '[]');
-    const forumPosts = allPosts.filter(post => post.forumId === forumId);
-    setPosts(forumPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-  }, [forumId, navigate]);
+    // Fetch posts for this forum
+    const { data: postsData, error: postsError } = await supabase
+      .from('posts')
+      .select('*, author:users(username)')
+      .eq('forum_id', forumId)
+      .order('created_at', { ascending: false });
+
+    if (postsError) {
+      toast({ title: "Error", description: "Failed to fetch posts", variant: "destructive" });
+    } else {
+      setPosts(postsData);
+    }
+  };
 
   const handleFeatureClick = () => {
     toast({
@@ -77,31 +103,29 @@ const ForumDetail = () => {
               <p className="text-gray-400 mt-2">{forum.description}</p>
             </div>
             
-            <Button
-              onClick={() => navigate('/new-post', { state: { forumId: forum.id } })}
-              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              {translations.newPost}
-            </Button>
+            {user && (
+              <Button
+                onClick={() => navigate('/new-post', { state: { forumId: forum.id } })}
+                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+              >
+                <i className="fas fa-plus mr-2"></i>
+                {translations.newPost}
+              </Button>
+            )}
           </div>
           
-          <div className="flex items-center space-x-6 text-sm text-gray-400">
-            <span>
-              <i className="fas fa-users mr-1"></i>
-              {forum.members} members
-            </span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400">
             <span>
               <i className="fas fa-file-alt mr-1"></i>
               {posts.length} posts
             </span>
             <span>
               <i className="fas fa-user mr-1"></i>
-              Created by {forum.createdBy}
+              Created by {forum.creator?.username || 'Unknown'}
             </span>
             <span>
               <i className="fas fa-calendar mr-1"></i>
-              {new Date(forum.createdAt).toLocaleDateString()}
+              {new Date(forum.created_at).toLocaleDateString()}
             </span>
           </div>
         </motion.div>
@@ -139,52 +163,22 @@ const ForumDetail = () => {
                     </h3>
                     <p className="text-gray-400 mt-2 line-clamp-2">{post.content}</p>
                   </div>
-                  
-                  {post.image && (
-                    <img 
-                      src={post.image} 
-                      alt={post.title}
-                      className="w-16 h-16 object-cover rounded-lg ml-4"
-                    />
-                  )}
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 text-sm text-gray-400">
                     <span>
                       <i className="fas fa-user mr-1"></i>
-                      {post.author}
+                      {post.author?.username || 'Unknown'}
                     </span>
                     <span>
                       <i className="fas fa-calendar mr-1"></i>
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </span>
-                    <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
-                      {post.category}
+                      {new Date(post.created_at).toLocaleDateString()}
                     </span>
                   </div>
                   
                   <div className="flex items-center space-x-4 text-sm text-gray-400">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFeatureClick();
-                      }}
-                      className="hover:text-red-400 transition-colors"
-                    >
-                      <i className="fas fa-heart mr-1"></i>
-                      {post.likes || 0}
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFeatureClick();
-                      }}
-                      className="hover:text-red-400 transition-colors"
-                    >
-                      <i className="fas fa-comment mr-1"></i>
-                      {post.replies || 0}
-                    </button>
+                    {/* Like and comment buttons can be implemented later */}
                   </div>
                 </div>
               </motion.div>
@@ -199,7 +193,7 @@ const ForumDetail = () => {
               <p className="text-gray-400 mb-4">
                 {searchTerm ? 'No posts found matching your search.' : 'No posts in this forum yet.'}
               </p>
-              {!searchTerm && (
+              {!searchTerm && user && (
                 <Button
                   onClick={() => navigate('/new-post', { state: { forumId: forum.id } })}
                   className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"

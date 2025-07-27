@@ -9,38 +9,40 @@ import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 const NewPost = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { translations } = useLanguage();
-  const { user, addReputation, incrementPostsCount } = useAuth();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    category: 'general',
-    forumId: location.state?.forumId || '',
-    image: ''
+    forum_id: location.state?.forumId || '',
   });
   const [forums, setForums] = useState([]);
-  const [imagePreview, setImagePreview] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const categories = Object.entries(translations.categories).map(([value, label]) => ({ value, label }));
-
   useEffect(() => {
-    const allForums = JSON.parse(localStorage.getItem('forums') || '[]');
-    setForums(allForums);
-    if (allForums.length > 0 && !formData.forumId) {
-      setFormData(prev => ({ ...prev, forumId: allForums[0].id }));
-    }
-  }, [formData.forumId]);
+    const fetchForums = async () => {
+      const { data, error } = await supabase.from('forums').select('id, name');
+      if (error) {
+        toast({ title: "Error", description: "Failed to fetch forums.", variant: "destructive" });
+      } else {
+        setForums(data);
+        if (data.length > 0 && !formData.forum_id) {
+          setFormData(prev => ({ ...prev, forum_id: data[0].id }));
+        }
+      }
+    };
+    fetchForums();
+  }, [formData.forum_id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (name === 'image' && value) setImagePreview(value);
   };
 
   const handleSubmit = async (e) => {
@@ -49,40 +51,34 @@ const NewPost = () => {
       toast({ title: "Error", description: "Judul dan konten harus diisi", variant: "destructive" });
       return;
     }
-    if (!formData.forumId) {
+    if (!formData.forum_id) {
       toast({ title: "Error", description: "Silakan pilih forum", variant: "destructive" });
+      return;
+    }
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in to post.", variant: "destructive" });
       return;
     }
 
     setLoading(true);
 
-    const post = {
-      id: `post-${Date.now()}`,
-      ...formData,
-      author: user.username,
-      authorId: user.id,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      repliesCount: 0
-    };
+    const { data, error } = await supabase
+      .from('posts')
+      .insert({
+        ...formData,
+        author_id: user.id,
+      })
+      .select()
+      .single();
 
-    const posts = JSON.parse(localStorage.getItem('posts') || '[]');
-    posts.push(post);
-    localStorage.setItem('posts', JSON.stringify(posts));
-
-    const allForums = JSON.parse(localStorage.getItem('forums') || '[]');
-    const forumIndex = allForums.findIndex(f => f.id === formData.forumId);
-    if (forumIndex !== -1) {
-      allForums[forumIndex].postsCount = (allForums[forumIndex].postsCount || 0) + 1;
-      localStorage.setItem('forums', JSON.stringify(allForums));
-    }
-    
-    incrementPostsCount();
-    addReputation(10); // +10 reputasi untuk setiap postingan
-
-    toast({ title: "Postingan Dibuat", description: "Postingan Anda telah berhasil dibuat!" });
-    navigate(`/post/${post.id}`);
     setLoading(false);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Postingan Dibuat", description: "Postingan Anda telah berhasil dibuat!" });
+      navigate(`/post/${data.id}`);
+    }
   };
 
   return (
@@ -102,8 +98,8 @@ const NewPost = () => {
           <div className="glass-effect p-6 rounded-lg neon-border">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="forumId" className="text-red-400">Pilih Forum *</Label>
-                <select id="forumId" name="forumId" value={formData.forumId} onChange={handleChange} required className="w-full p-3 bg-black/50 border border-red-500/30 text-white rounded-md focus:border-red-500">
+                <Label htmlFor="forum_id" className="text-red-400">Pilih Forum *</Label>
+                <select id="forum_id" name="forum_id" value={formData.forum_id} onChange={handleChange} required className="w-full p-3 bg-black/50 border border-red-500/30 text-white rounded-md focus:border-red-500">
                   <option value="">Pilih forum...</option>
                   {forums.map(forum => <option key={forum.id} value={forum.id}>{forum.name}</option>)}
                 </select>
@@ -113,27 +109,9 @@ const NewPost = () => {
                 <Input id="title" name="title" value={formData.title} onChange={handleChange} placeholder="Masukkan judul postingan..." required className="bg-black/50 border-red-500/30 text-white focus:border-red-500" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category" className="text-red-400">{translations.category}</Label>
-                <select id="category" name="category" value={formData.category} onChange={handleChange} className="w-full p-3 bg-black/50 border border-red-500/30 text-white rounded-md focus:border-red-500">
-                  {categories.map(category => <option key={category.value} value={category.value}>{category.label}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="content" className="text-red-400">{translations.description} *</Label>
                 <Textarea id="content" name="content" value={formData.content} onChange={handleChange} placeholder="Tulis konten postingan Anda..." required rows={8} className="bg-black/50 border-red-500/30 text-white focus:border-red-500" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="image" className="text-red-400">URL Gambar (Opsional)</Label>
-                <Input id="image" name="image" type="url" value={formData.image} onChange={handleChange} placeholder="https://example.com/image.jpg" className="bg-black/50 border-red-500/30 text-white focus:border-red-500" />
-              </div>
-              {imagePreview && (
-                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="space-y-2">
-                  <Label className="text-red-400">Pratinjau</Label>
-                  <div className="border border-red-500/30 rounded-lg p-4">
-                    <img src={imagePreview} alt="Preview" className="max-w-full h-auto max-h-64 rounded-lg" onError={() => setImagePreview('')} />
-                  </div>
-                </motion.div>
-              )}
               <div className="flex space-x-4">
                 <Button type="submit" disabled={loading} className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3">
                   {loading ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-paper-plane mr-2"></i>}

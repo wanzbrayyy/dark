@@ -1,23 +1,39 @@
 
-    import React from 'react';
+import React, { useState } from 'react';
     import { motion } from 'framer-motion';
     import { Helmet } from 'react-helmet';
     import { Button } from '@/components/ui/button';
     import { useToast } from "@/components/ui/use-toast";
     import { ArrowLeft } from 'lucide-react';
     import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
 
     const Login = () => {
       const { toast } = useToast();
       const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-      const handleLogin = (e) => {
+  const handleLogin = async (e) => {
         e.preventDefault();
-        toast({
-          title: "🚧 Fitur Belum Tersedia 🚧",
-          description: "Login dengan Supabase belum diimplementasikan. Minta saya untuk mengintegrasikannya! 🚀",
-          variant: "destructive",
-        });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      toast({
+        title: "Login Berhasil",
+        description: "Selamat datang kembali!",
+      });
+      navigate('/');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
       };
 
       return (
@@ -40,12 +56,12 @@
                 <p className="text-center text-muted-foreground mb-8">Selamat datang kembali, peretas.</p>
                 <form onSubmit={handleLogin} className="space-y-6">
                   <div>
-                    <label className="text-sm font-bold text-muted-foreground" htmlFor="username">Username / Email</label>
-                    <input id="username" type="text" className="mt-2 w-full bg-background border border-muted-foreground/30 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="wanz" />
+                <label className="text-sm font-bold text-muted-foreground" htmlFor="email">Email</label>
+                <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full bg-background border border-muted-foreground/30 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="email@contoh.com" />
                   </div>
                   <div>
                     <label className="text-sm font-bold text-muted-foreground" htmlFor="password">Password</label>
-                    <input id="password" type="password" className="mt-2 w-full bg-background border border-muted-foreground/30 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••" />
+                <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full bg-background border border-muted-foreground/30 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••" />
                   </div>
                   <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white text-lg py-3">
                     Masuk

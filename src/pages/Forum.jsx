@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 const Forum = () => {
   const navigate = useNavigate();
@@ -18,57 +19,66 @@ const Forum = () => {
   const [newForum, setNewForum] = useState({
     name: '',
     description: '',
-    theme: 'dark'
   });
 
   useEffect(() => {
-    const existingForums = JSON.parse(localStorage.getItem('forums') || '[]');
-    if (existingForums.length === 0) {
-      const defaultForums = [
-        {
-          id: 'general-discussion', name: 'General Discussion', description: 'General hacker discussions and topics', theme: 'dark', createdBy: 'wanz', createdAt: new Date().toISOString(), members: 1, postsCount: 0, url: `${window.location.origin}/forum/general-discussion`
-        },
-        {
-          id: 'tools-scripts', name: 'Tools & Scripts', description: 'Share and discuss hacking tools and scripts', theme: 'red', createdBy: 'wanz', createdAt: new Date().toISOString(), members: 1, postsCount: 0, url: `${window.location.origin}/forum/tools-scripts`
-        },
-        {
-          id: 'learning-hub', name: 'Learning Hub', description: 'Educational content and tutorials', theme: 'blue', createdBy: 'wanz', createdAt: new Date().toISOString(), members: 1, postsCount: 0, url: `${window.location.origin}/forum/learning-hub`
-        }
-      ];
-      localStorage.setItem('forums', JSON.stringify(defaultForums));
-      setForums(defaultForums);
-    } else {
-      setForums(existingForums);
+    fetchForums();
+    const channel = supabase.channel('public:forums')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'forums' }, payload => {
+        console.log('Change received!', payload)
+        fetchForums();
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel);
     }
   }, []);
 
-  const handleCreateForum = () => {
+  const fetchForums = async () => {
+    const { data, error } = await supabase
+      .from('forums')
+      .select(`
+        *,
+        creator:users(username)
+      `);
+    if (error) {
+      toast({ title: "Error", description: "Failed to fetch forums", variant: "destructive" });
+    } else {
+      setForums(data);
+    }
+  };
+
+  const handleCreateForum = async () => {
     if (!newForum.name.trim()) {
       toast({ title: "Error", description: "Forum name is required", variant: "destructive" });
       return;
     }
 
-    const forumId = newForum.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    const forum = {
-      id: forumId, name: newForum.name, description: newForum.description, theme: newForum.theme, createdBy: user.username, createdAt: new Date().toISOString(), members: 1, postsCount: 0, url: `${window.location.origin}/forum/${forumId}`
-    };
+    const { data, error } = await supabase
+      .from('forums')
+      .insert([
+        { name: newForum.name, description: newForum.description, creator_id: user.id },
+      ]);
 
-    const updatedForums = [...forums, forum];
-    setForums(updatedForums);
-    localStorage.setItem('forums', JSON.stringify(updatedForums));
-    setNewForum({ name: '', description: '', theme: 'dark' });
-    setShowCreateForm(false);
-    toast({ title: "Forum Created", description: `Forum "${forum.name}" has been created successfully!` });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Forum Created", description: `Forum "${newForum.name}" has been created successfully!` });
+      setNewForum({ name: '', description: '' });
+      setShowCreateForm(false);
+    }
   };
 
-  const copyForumUrl = (url) => {
+  const copyForumUrl = (id) => {
+    const url = `${window.location.origin}/forum/${id}`;
     navigator.clipboard.writeText(url);
     toast({ title: "URL Copied", description: "Forum URL has been copied to clipboard" });
   };
 
   const filteredForums = forums.filter(forum =>
     forum.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    forum.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (forum.description && forum.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -89,13 +99,15 @@ const Forum = () => {
             <p className="text-gray-400">Jelajahi komunitas dan diskusi</p>
           </div>
           
-          <Button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
-          >
-            <i className="fas fa-plus mr-2"></i>
-            Buat Forum
-          </Button>
+          {user && (
+            <Button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+            >
+              <i className="fas fa-plus mr-2"></i>
+              Buat Forum
+            </Button>
+          )}
         </motion.div>
 
         <motion.div
@@ -151,22 +163,21 @@ const Forum = () => {
                   <h3 className="text-xl font-bold text-white group-hover:text-red-400 transition-colors">{forum.name}</h3>
                   <p className="text-gray-400 text-sm mt-1">{forum.description}</p>
                 </div>
-                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); copyForumUrl(forum.url); }} className="text-gray-400 hover:text-red-400"><i className="fas fa-copy"></i></Button>
+                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); copyForumUrl(forum.id); }} className="text-gray-400 hover:text-red-400"><i className="fas fa-copy"></i></Button>
               </div>
               <div className="flex items-center justify-between text-sm text-gray-400">
                 <div className="flex items-center space-x-4">
-                  <span><i className="fas fa-users mr-1"></i>{forum.members} anggota</span>
-                  <span><i className="fas fa-file-alt mr-1"></i>{forum.postsCount} postingan</span>
+                  {/* Member and post counts can be added later */}
                 </div>
               </div>
-              <div className="mt-4 text-xs text-gray-500">Dibuat oleh {forum.createdBy} • {new Date(forum.createdAt).toLocaleDateString()}</div>
+              <div className="mt-4 text-xs text-gray-500">Dibuat oleh {forum.creator?.username || 'Unknown'} • {new Date(forum.created_at).toLocaleDateString()}</div>
             </motion.div>
           ))}
         </div>
         {filteredForums.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
-            <i className="fas fa-search text-4xl text-gray-400 mb-4"></i>
-            <p className="text-gray-400">Tidak ada forum yang cocok dengan pencarian Anda.</p>
+            <i className="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i>
+            <p className="text-gray-400">Memuat forum atau belum ada forum.</p>
           </motion.div>
         )}
       </div>
